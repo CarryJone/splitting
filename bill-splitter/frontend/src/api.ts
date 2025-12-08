@@ -6,6 +6,7 @@ const api = axios.create({
 });
 
 export const createGroup = (name: string) => api.post('/groups', { name });
+export const getGroups = () => api.get('/groups');
 export const getGroup = (id: string) => api.get(`/groups/${id}`);
 export const addMember = (groupId: string, name: string) => api.post(`/groups/${groupId}/members`, { name });
 export const updateMember = (groupId: string, memberId: number, name: string) => api.put(`/groups/${groupId}/members/${memberId}`, { name });
