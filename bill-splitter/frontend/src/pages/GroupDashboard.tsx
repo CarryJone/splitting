@@ -8,6 +8,7 @@ import MemberList from '../components/MemberList';
 import ExpenseList from '../components/ExpenseList';
 import SettlementPlan from '../components/SettlementPlan';
 import AddExpenseModal from '../components/AddExpenseModal';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function GroupDashboard() {
     const { id } = useParams<{ id: string }>();
@@ -19,8 +20,8 @@ export default function GroupDashboard() {
     const [editingExpense, setEditingExpense] = useState<any>(null);
 
     const fetchData = async () => {
-        // ... existing fetchData
         if (!id) return;
+        setLoading(true);
         try {
             const [groupRes, settlementRes] = await Promise.all([
                 getGroup(id),
@@ -57,7 +58,9 @@ export default function GroupDashboard() {
         }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center">載入中...</div>;
+
+
+    if (loading) return <LoadingScreen />;
     if (!group) return <div className="min-h-screen flex items-center justify-center">找不到群組</div>;
 
     return (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { addMember, updateMember, deleteMember } from '../api';
-import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Save, Loader2 } from 'lucide-react';
 
 interface Props {
     groupId: string;
@@ -13,18 +13,32 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
     const [loading, setLoading] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editName, setEditName] = useState('');
+    const [pendingMembers, setPendingMembers] = useState<string[]>([]);
 
-    const handleAdd = async (e: React.FormEvent) => {
+    const handleAddPending = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newName) return;
+        if (!newName.trim()) return;
+        setPendingMembers([...pendingMembers, newName.trim()]);
+        setNewName('');
+    };
+
+    const removePending = (index: number) => {
+        setPendingMembers(pendingMembers.filter((_, i) => i !== index));
+    };
+
+    const handleSaveAll = async () => {
+        if (pendingMembers.length === 0) return;
         setLoading(true);
         try {
-            await addMember(groupId, newName);
-            setNewName('');
+            // Sequential execution to ensure order and avoid race conditions
+            for (const name of pendingMembers) {
+                await addMember(groupId, name);
+            }
+            setPendingMembers([]);
             onUpdate();
         } catch (err) {
             console.error(err);
-            alert('新增成員失敗');
+            alert('儲存成員失敗，請稍後再試');
         } finally {
             setLoading(false);
         }
@@ -81,7 +95,18 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
 
     return (
         <div className="space-y-4">
+            {/* Loading Overlay */}
+            {loading && (
+                <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+                    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col items-center animate-bounce-in">
+                        <Loader2 className="w-8 h-8 text-brand-600 animate-spin mb-3" />
+                        <p className="text-gray-600 font-medium">正在儲存成員資料...</p>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-wrap gap-3">
+                {/* Existing Members */}
                 {members.map(member => (
                     <div key={member.id} className="group relative flex items-center gap-2 bg-gray-50 pl-1 pr-3 py-1 rounded-full border border-gray-100 hover:border-brand-200 hover:shadow-sm transition-all">
                         {editingId === member.id ? (
@@ -129,12 +154,29 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
                     </div>
                 ))}
 
-                <form onSubmit={handleAdd} className="flex items-center">
+                {/* Pending Members */}
+                {pendingMembers.map((name, index) => (
+                    <div key={`pending-${index}`} className="flex items-center gap-2 bg-brand-50 pl-1 pr-2 py-1 rounded-full border border-brand-200 border-dashed animate-fade-in">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-white text-brand-600 border border-brand-100">
+                            {getInitials(name)}
+                        </div>
+                        <span className="text-sm font-medium text-brand-700">{name}</span>
+                        <button
+                            onClick={() => removePending(index)}
+                            className="ml-1 p-0.5 text-brand-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                    </div>
+                ))}
+
+                {/* Add Input */}
+                <form onSubmit={handleAddPending} className="flex items-center">
                     <div className="relative group">
                         <input
                             type="text"
-                            placeholder="新增成員..."
-                            className="pl-3 pr-10 py-1.5 w-32 rounded-full border border-gray-200 bg-white text-sm focus:w-48 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none placeholder:text-gray-400"
+                            placeholder="輸入名字按 Enter..."
+                            className="pl-3 pr-10 py-1.5 w-36 rounded-full border border-gray-200 bg-white text-sm focus:w-48 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none placeholder:text-gray-400"
                             value={newName}
                             onChange={e => setNewName(e.target.value)}
                             disabled={loading}
@@ -149,6 +191,20 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
                     </div>
                 </form>
             </div>
+
+            {/* Save Button */}
+            {pendingMembers.length > 0 && (
+                <div className="flex justify-end animate-fade-in">
+                    <button
+                        onClick={handleSaveAll}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-600/20 hover:bg-brand-700 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        確認新增 {pendingMembers.length} 位成員
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

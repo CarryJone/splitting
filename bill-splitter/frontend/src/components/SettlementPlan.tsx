@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowRight, CheckCircle2, Wallet } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { ArrowRight, CheckCircle2, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface Props {
     data: any;
@@ -9,6 +9,25 @@ export default function SettlementPlan({ data }: Props) {
     if (!data) return null;
 
     const { total_expense, settlement_plan } = data;
+
+    // Calculate net balance for each person
+    const netBalances = useMemo(() => {
+        const balances: { [key: string]: number } = {};
+
+        settlement_plan.forEach((debt: any) => {
+            // Payer (from) loses money (negative)
+            balances[debt.from] = (balances[debt.from] || 0) - debt.amount;
+            // Receiver (to) gains money (positive)
+            balances[debt.to] = (balances[debt.to] || 0) + debt.amount;
+        });
+
+        // Convert to array and sort by amount (receivers first)
+        return Object.entries(balances)
+            .map(([name, amount]) => ({ name, amount }))
+            .sort((a, b) => b.amount - a.amount);
+    }, [settlement_plan]);
+
+    const maxBalance = Math.max(...netBalances.map(b => Math.abs(b.amount)), 1);
 
     if (settlement_plan.length === 0) {
         return (
@@ -23,7 +42,8 @@ export default function SettlementPlan({ data }: Props) {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
+            {/* Total Expense Card */}
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 text-white shadow-xl shadow-gray-200">
                 <div className="flex items-center gap-3 mb-2 opacity-80">
                     <Wallet className="w-5 h-5" />
@@ -34,6 +54,62 @@ export default function SettlementPlan({ data }: Props) {
                 </div>
             </div>
 
+            {/* Net Balance Chart */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">收支概況</h3>
+                <div className="space-y-4">
+                    {netBalances.map((item) => (
+                        <div key={item.name} className="flex items-center gap-4">
+                            {/* Name */}
+                            <div className="w-16 text-sm font-bold text-gray-700 truncate text-right shrink-0">
+                                {item.name}
+                            </div>
+
+                            {/* Bar Chart Area */}
+                            <div className="flex-1 flex items-center h-8 relative">
+                                {/* Center Line */}
+                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200"></div>
+
+                                {/* Bar */}
+                                <div className="w-full flex">
+                                    <div className="flex-1 flex justify-end">
+                                        {item.amount < 0 && (
+                                            <div
+                                                className="h-6 bg-red-500 rounded-l-md flex items-center justify-end pr-2 text-xs text-white font-bold transition-all duration-500"
+                                                style={{ width: `${(Math.abs(item.amount) / maxBalance) * 100}%` }}
+                                            >
+                                                ${Math.abs(item.amount).toLocaleString()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 flex justify-start">
+                                        {item.amount > 0 && (
+                                            <div
+                                                className="h-6 bg-green-500 rounded-r-md flex items-center pl-2 text-xs text-white font-bold transition-all duration-500"
+                                                style={{ width: `${(item.amount / maxBalance) * 100}%` }}
+                                            >
+                                                ${item.amount.toLocaleString()}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    <div className="flex justify-between text-xs text-gray-400 px-16 mt-2">
+                        <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            應付
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            應收
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Transfer Plan */}
             <div className="space-y-3">
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-2">建議轉帳方案</h3>
                 {settlement_plan.map((debt: any, index: number) => (
