@@ -1,7 +1,7 @@
 import { handle } from 'hono/vercel'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import groups from '../src/routes/groups'
+import groups from '../backend/src/routes/groups'
 
 const app = new Hono()
 
