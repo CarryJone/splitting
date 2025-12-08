@@ -318,4 +318,15 @@ groups.get('/:id/settlement', async (c) => {
     }
 });
 
+// Get all groups (for Home page)
+groups.get('/', async (c) => {
+    try {
+        const result = await query('SELECT * FROM groups ORDER BY created_at DESC');
+        return c.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        return c.json({ error: 'Failed to fetch groups' }, 500);
+    }
+});
+
 export default groups;

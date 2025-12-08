@@ -1,12 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createGroup } from '../api';
-import { Users, ArrowRight } from 'lucide-react';
+import { createGroup, getGroups } from '../api';
+import { Users, ArrowRight, Clock, ChevronRight } from 'lucide-react';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function LandingPage() {
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
+    const [groups, setGroups] = useState<any[]>([]);
+    const [fetchingGroups, setFetchingGroups] = useState(true);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchGroups();
+    }, []);
+
+    const fetchGroups = async () => {
+        try {
+            const res = await getGroups();
+            setGroups(res.data);
+        } catch (err) {
+            console.error('Failed to fetch groups', err);
+        } finally {
+            setFetchingGroups(false);
+        }
+    };
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,9 +42,13 @@ export default function LandingPage() {
         }
     };
 
+    if (fetchingGroups) {
+        return <LoadingScreen message="載入群組列表..." />;
+    }
+
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-brand-50 via-white to-brand-100 p-4">
-            <div className="w-full max-w-md animate-slide-up">
+        <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-brand-50 via-white to-brand-100 p-4">
+            <div className="w-full max-w-md animate-slide-up mt-10 mb-8">
                 <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-brand-100/50 p-8 text-center border border-white/50">
                     <div className="mx-auto bg-gradient-to-tr from-brand-500 to-brand-400 w-20 h-20 rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-brand-500/30 transform rotate-3 hover:rotate-6 transition-transform duration-300">
                         <Users className="w-10 h-10 text-white" />
@@ -59,11 +81,41 @@ export default function LandingPage() {
                         </button>
                     </form>
                 </div>
-
-                <p className="text-center text-gray-400 text-sm mt-8">
-                    簡單 • 快速 • 免費
-                </p>
             </div>
+
+            {/* Recent Groups List */}
+            {groups.length > 0 && (
+                <div className="w-full max-w-md animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-4">最近的群組</h2>
+                    <div className="space-y-3">
+                        {groups.map((group) => (
+                            <div
+                                key={group.id}
+                                onClick={() => navigate(`/group/${group.id}`)}
+                                className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-brand-200 transition-all group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-lg">
+                                        {group.name.slice(0, 1)}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900">{group.name}</h3>
+                                        <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                                            <Clock className="w-3 h-3" />
+                                            {new Date(group.created_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-brand-500 transition-colors" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <p className="text-center text-gray-400 text-sm mt-8 mb-8">
+                簡單 • 快速 • 免費
+            </p>
         </div>
     );
 }

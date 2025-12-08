@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { addMember, updateMember, deleteMember } from '../api';
 import { Plus, Pencil, Trash2, X, Check, Save, Loader2 } from 'lucide-react';
+import { getMemberColor, getMemberInitials } from '../utils/colors';
 
 interface Props {
     groupId: string;
@@ -83,15 +84,7 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
         setEditName(member.name);
     };
 
-    const getInitials = (name: string) => name.slice(0, 1).toUpperCase();
-    const getColor = (name: string) => {
-        const colors = ['bg-red-100 text-red-600', 'bg-orange-100 text-orange-600', 'bg-amber-100 text-amber-600', 'bg-green-100 text-green-600', 'bg-emerald-100 text-emerald-600', 'bg-teal-100 text-teal-600', 'bg-cyan-100 text-cyan-600', 'bg-sky-100 text-sky-600', 'bg-blue-100 text-blue-600', 'bg-indigo-100 text-indigo-600', 'bg-violet-100 text-violet-600', 'bg-purple-100 text-purple-600', 'bg-fuchsia-100 text-fuchsia-600', 'bg-pink-100 text-pink-600', 'bg-rose-100 text-rose-600'];
-        let hash = 0;
-        for (let i = 0; i < name.length; i++) {
-            hash = name.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        return colors[Math.abs(hash) % colors.length];
-    };
+
 
     return (
         <div className="space-y-4">
@@ -127,8 +120,8 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
                             </div>
                         ) : (
                             <>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getColor(member.name)}`}>
-                                    {getInitials(member.name)}
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${getMemberColor(member.id)}`}>
+                                    {getMemberInitials(member.name)}
                                 </div>
                                 <span className="text-sm font-medium text-gray-700">{member.name}</span>
 
@@ -156,9 +149,9 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
 
                 {/* Pending Members */}
                 {pendingMembers.map((name, index) => (
-                    <div key={`pending-${index}`} className="flex items-center gap-2 bg-brand-50 pl-1 pr-2 py-1 rounded-full border border-brand-200 border-dashed animate-fade-in">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-white text-brand-600 border border-brand-100">
-                            {getInitials(name)}
+                    <div key={`pending-${index}`} className="flex items-center gap-2 bg-gray-50 pl-1 pr-2 py-1 rounded-full border border-gray-200 border-dashed animate-fade-in">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-white text-gray-400 border border-gray-200">
+                            {getMemberInitials(name)}
                         </div>
                         <span className="text-sm font-medium text-brand-700">{name}</span>
                         <button

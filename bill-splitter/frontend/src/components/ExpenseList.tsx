@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Pencil, Trash2, Calendar, User, Search } from 'lucide-react';
+import { getMemberColor, getMemberInitials } from '../utils/colors';
 
 interface Props {
     expenses: any[];
@@ -12,15 +13,6 @@ export default function ExpenseList({ expenses, members, onEdit, onDelete }: Pro
     const [searchTerm, setSearchTerm] = useState('');
 
     const getMemberName = (id: number) => members.find(m => m.id === id)?.name || 'Unknown';
-    const getInitials = (name: string) => name.slice(0, 1).toUpperCase();
-    const getColor = (name: string) => {
-        const colors = ['bg-red-100 text-red-600', 'bg-orange-100 text-orange-600', 'bg-amber-100 text-amber-600', 'bg-green-100 text-green-600', 'bg-emerald-100 text-emerald-600', 'bg-teal-100 text-teal-600', 'bg-cyan-100 text-cyan-600', 'bg-sky-100 text-sky-600', 'bg-blue-100 text-blue-600', 'bg-indigo-100 text-indigo-600', 'bg-violet-100 text-violet-600', 'bg-purple-100 text-purple-600', 'bg-fuchsia-100 text-fuchsia-600', 'bg-pink-100 text-pink-600', 'bg-rose-100 text-rose-600'];
-        let hash = 0;
-        for (let i = 0; i < name.length; i++) {
-            hash = name.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        return colors[Math.abs(hash) % colors.length];
-    };
 
     const filteredExpenses = useMemo(() => {
         if (!searchTerm.trim()) return expenses;
@@ -81,8 +73,8 @@ export default function ExpenseList({ expenses, members, onEdit, onDelete }: Pro
                         return (
                             <div key={expense.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group relative overflow-hidden">
                                 <div className="flex items-start gap-4">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0 ${getColor(payerName)}`}>
-                                        {getInitials(payerName)}
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0 border ${getMemberColor(expense.payer_member_id)}`}>
+                                        {getMemberInitials(payerName)}
                                     </div>
 
                                     <div className="flex-1 min-w-0">
@@ -103,14 +95,24 @@ export default function ExpenseList({ expenses, members, onEdit, onDelete }: Pro
                                             </div>
                                         </div>
 
-                                        {splitNames && (
+                                        {expense.splits && expense.splits.length > 0 && (
                                             <div className="mt-3 pt-3 border-t border-gray-50 flex items-start gap-2">
-                                                <div className="bg-gray-100 rounded-md px-1.5 py-0.5 mt-0.5">
+                                                <div className="bg-gray-100 rounded-md px-1.5 py-0.5 mt-0.5 shrink-0">
                                                     <User className="w-3 h-3 text-gray-500" />
                                                 </div>
-                                                <div className="text-xs text-gray-500 leading-relaxed">
-                                                    <span className="text-gray-400 mr-1">分攤人員:</span>
-                                                    {splitNames}
+                                                <div className="flex flex-wrap gap-1.5 items-center">
+                                                    <span className="text-xs text-gray-400 mr-1">分攤人員:</span>
+                                                    {expense.splits.map((split: any) => {
+                                                        const memberName = getMemberName(split.member_id);
+                                                        return (
+                                                            <span
+                                                                key={split.member_id}
+                                                                className={`text-xs px-2 py-0.5 rounded-md font-bold border ${getMemberColor(split.member_id)} bg-opacity-50 border-opacity-20`}
+                                                            >
+                                                                {memberName}
+                                                            </span>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
