@@ -1,15 +1,16 @@
-import { handle } from 'hono/vercel'
+import { getRequestListener } from '@hono/node-server'
 import app from '../backend/src/index'
 import { getPool } from '../backend/src/db/index'
 
-// Re-using the official Hono Vercel adapter.
-// Now that tsconfig.json is fixed, this should work correctly and handle Body parsing better than the generic node-server adapter.
-const handler = handle(app)
+// The Winning Combination: 
+// 1. Use generic Node adapter (because hono/vercel hangs on load).
+// 2. Disable Vercel body parser (so stream is accessible to Hono).
+const handler = getRequestListener(app.fetch)
 
 // Mount debug route directly on the app (since we import the instance)
 app.get('/api/ping-trace', (c) => {
-    console.log('[DEBUG] Ping trace hit! (Hono Adapter)');
-    return c.json({ status: 'alive', message: 'Routing is working (Hono Adapter)', env: process.env.VERCEL ? 'Vercel' : 'Local' });
+    console.log('[DEBUG] Ping trace hit! (Node Server Adapter)');
+    return c.json({ status: 'alive', message: 'Routing is working (Node Adapter)', env: process.env.VERCEL ? 'Vercel' : 'Local' });
 });
 
 app.get('/api/debug-db', async (c) => {
@@ -56,8 +57,7 @@ app.get('/api/debug-db', async (c) => {
 
 export default handler
 
-// We keep bodyParser disabled to allow Hono to handle the stream if possible.
-// The adapter might override this, but it's good practice.
+// Disable body parsing logic in Vercel so that Hono's stream reader can work.
 export const config = {
     runtime: 'nodejs',
     api: {
