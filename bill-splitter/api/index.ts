@@ -1,11 +1,8 @@
 import { handle } from 'hono/vercel'
 import { Hono } from 'hono'
-import { cors } from 'hono/cors'
-import groups from '../backend/src/routes/groups'
-
 const app = new Hono()
 
-app.use('/*', cors())
+// app.use('/*', cors()) // CORS is not needed for same-origin requests via Vercel rewrites, and was causing crashes.
 
 app.get('/', (c) => {
     return c.text('Bill Splitter API is running!')
