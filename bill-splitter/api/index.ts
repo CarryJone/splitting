@@ -1,11 +1,34 @@
 import { handle } from 'hono/vercel'
 import { Hono } from 'hono'
 import groups from '../backend/src/routes/groups'
-import { pool } from '../backend/src/db'
+import { Pool } from 'pg'; // Import pg directly
+// import { pool } from '../backend/src/db' // Remove external import
 
 const app = new Hono()
 
-// app.use('/*', cors()) // CORS is not needed for same-origin requests via Vercel rewrites, and was causing crashes.
+// --- INLINED DB CONNECTION FOR DEBUGGING ---
+const dbUrl = process.env.DATABASE_URL;
+if (!dbUrl) {
+    console.error('[API INLINE] CRITICAL: DATABASE_URL is not set!');
+} else {
+    console.log(`[API INLINE] DATABASE_URL is set (Length: ${dbUrl.length})`);
+    // Print the host/port to verify (masking password)
+    const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@');
+    console.log(`[API INLINE] Connection String: ${maskedUrl}`);
+}
+
+const pool = new Pool({
+    connectionString: dbUrl,
+    ssl: { rejectUnauthorized: false }, // Critical for Supabase
+    connectionTimeoutMillis: 5000,
+});
+
+pool.on('error', (err) => {
+    console.error('[API INLINE] Pool Error:', err);
+});
+// -------------------------------------------
+
+// app.use('/*', cors()) 
 
 app.get('/', (c) => {
     return c.text('Bill Splitter API is running!')
@@ -18,17 +41,17 @@ app.get('/api', (c) => {
 app.route('/api/groups', groups)
 
 app.get('/api/debug-db', async (c) => {
-    const dbUrl = process.env.DATABASE_URL;
     const diagnostics = {
         env_var_present: !!dbUrl,
         env_var_length: dbUrl?.length || 0,
+        connection_string_preview: dbUrl ? dbUrl.replace(/:([^:@]+)@/, ':****@') : 'N/A',
         db_connectivity: 'unknown',
         error: null as any,
         timestamp: new Date().toISOString()
     };
 
     try {
-        console.log('[Debug-DB] Attempting connection...');
+        console.log('[Debug-DB] Attempting connection via INLINED pool...');
         const client = await pool.connect();
         const res = await client.query('SELECT NOW()');
         client.release();
@@ -40,7 +63,6 @@ app.get('/api/debug-db', async (c) => {
         diagnostics.error = {
             message: err.message,
             code: err.code,
-            // Don't expose full stack in production unless necessary, but helpful for debug
             stack: err.stack
         };
         return c.json(diagnostics, 500);
