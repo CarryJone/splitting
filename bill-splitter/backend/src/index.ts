@@ -9,6 +9,10 @@ if (process.env.NODE_ENV !== 'production') {
   app.use('/*', cors())
 }
 
+app.get('/api/ping-trace', (c) => {
+  return c.json({ status: 'alive', message: 'Local backend is working' });
+})
+
 app.get('/', (c) => {
   return c.text('Bill Splitter API is running!')
 })
