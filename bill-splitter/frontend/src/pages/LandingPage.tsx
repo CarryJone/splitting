@@ -9,6 +9,7 @@ export default function LandingPage() {
     const [loading, setLoading] = useState(false);
     const [groups, setGroups] = useState<any[]>([]);
     const [fetchingGroups, setFetchingGroups] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -17,10 +18,19 @@ export default function LandingPage() {
 
     const fetchGroups = async () => {
         try {
+            setError(null);
             const res = await getGroups();
-            setGroups(res.data);
+            if (Array.isArray(res.data)) {
+                setGroups(res.data);
+            } else {
+                console.error('Unexpected API response format:', res.data);
+                setGroups([]);
+                // If it's not an array, it might be an error object that Axios didn't throw for some reason,
+                // or the proxy returning HTML.
+            }
         } catch (err) {
             console.error('Failed to fetch groups', err);
+            setError('無法載入群組列表，請稍後再試');
         } finally {
             setFetchingGroups(false);
         }
@@ -44,6 +54,26 @@ export default function LandingPage() {
 
     if (fetchingGroups) {
         return <LoadingScreen message="載入群組列表..." />;
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+                <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center max-w-sm w-full">
+                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-2xl">⚠️</span>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">發生錯誤</h2>
+                    <p className="text-gray-500 mb-6">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-colors"
+                    >
+                        重新整理
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (

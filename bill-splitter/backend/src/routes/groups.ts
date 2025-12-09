@@ -168,7 +168,7 @@ groups.post('/:id/expenses', async (c) => {
         return c.json({ error: 'Invalid expense data' }, 400);
     }
 
-    const client = await import('../db/index.js').then(m => m.query); // Use query directly or pool client for transaction?
+    const client = await import('../db').then(m => m.query); // Use query directly or pool client for transaction?
     // For simplicity using simple queries, but ideally should be a transaction.
     // Since we don't have a transaction helper exposed in db/index.ts yet, let's just do it sequentially or update db/index.ts.
     // Re-importing query from top level is better.
@@ -206,7 +206,7 @@ groups.put('/:id/expenses/:expenseId', async (c) => {
         return c.json({ error: 'Invalid expense data' }, 400);
     }
 
-    const client = await import('../db/index.js').then(m => m.pool.connect());
+    const client = await import('../db').then(m => m.pool.connect());
 
     try {
         await client.query('BEGIN');
