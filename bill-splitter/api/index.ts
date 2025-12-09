@@ -1,6 +1,7 @@
 import { handle } from 'hono/vercel'
 import { Hono } from 'hono'
 import groups from '../backend/src/routes/groups'
+import { pool } from '../backend/src/db'
 
 const app = new Hono()
 
@@ -17,9 +18,6 @@ app.get('/api', (c) => {
 app.route('/api/groups', groups)
 
 app.get('/api/debug-db', async (c) => {
-    // Dynamically import pool to avoid initialization issues if this file is imported elsewhere
-    const { pool } = await import('../backend/src/db');
-
     const dbUrl = process.env.DATABASE_URL;
     const diagnostics = {
         env_var_present: !!dbUrl,
