@@ -3,6 +3,11 @@ import app from '../backend/src/index'
 import { pool } from '../backend/src/db/index'
 
 // Mount debug route directly on the app
+app.get('/api/ping-trace', (c) => {
+    console.log('[DEBUG] Ping trace hit!');
+    return c.json({ status: 'alive', message: 'Routing is working' });
+});
+
 app.get('/api/debug-db', async (c) => {
     const databaseUrl = process.env.DATABASE_URL || 'NOT_SET';
     const hiddenUrl = databaseUrl !== 'NOT_SET'
