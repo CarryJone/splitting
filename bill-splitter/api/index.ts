@@ -50,11 +50,21 @@ app.get('/api/debug-db', async (c) => {
         timestamp: new Date().toISOString()
     };
 
+    // Use Client instead of Pool for a one-off connection test to avoid pool-related hangs
+    const { Client } = await import('pg');
+    const client = new Client({
+        connectionString: dbUrl,
+        ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 5000,
+    });
+
     try {
-        console.log('[Debug-DB] Attempting connection via INLINED pool...');
-        const client = await pool.connect();
+        console.log('[Debug-DB] Attempting connection via SINGLE CLIENT...');
+        await client.connect();
         const res = await client.query('SELECT NOW()');
-        client.release();
+        await client.end();
+        console.log('[Debug-DB] Success:', res.rows[0]);
+
         diagnostics.db_connectivity = 'success';
         return c.json({ ...diagnostics, now: res.rows[0].now });
     } catch (err: any) {
@@ -65,8 +75,16 @@ app.get('/api/debug-db', async (c) => {
             code: err.code,
             stack: err.stack
         };
+        // Try to properly close client even on error if it's open
+        try { await client.end(); } catch (e) { }
+
         return c.json(diagnostics, 500);
     }
 });
+
+// Explicitly define the runtime as Node.js to prevent Vercel from inferring Edge
+export const config = {
+    runtime: 'nodejs',
+};
 
 export default handle(app)
