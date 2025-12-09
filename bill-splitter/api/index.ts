@@ -1,5 +1,7 @@
 import { handle } from 'hono/vercel'
 import { Hono } from 'hono'
+import groups from '../backend/src/routes/groups'
+
 const app = new Hono()
 
 // app.use('/*', cors()) // CORS is not needed for same-origin requests via Vercel rewrites, and was causing crashes.
