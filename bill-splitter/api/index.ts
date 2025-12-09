@@ -1,20 +1,62 @@
-import { Hono } from 'hono'
+import { getRequestListener } from '@hono/node-server'
+import app from '../backend/src/index'
+import { getPool } from '../backend/src/db/index'
 
-// Native Handler containing Hono instantiation
-export default function handler(req, res) {
-    console.log('[DEBUG] Native Handler with Hono Import Hit!');
+// Fix: Use @hono/node-server adapter instead of hono/vercel
+// This is more robust for Node.js runtime on Vercel
+const handler = getRequestListener(app.fetch)
+
+// Mount debug route directly on the app (since we import the instance)
+app.get('/api/ping-trace', (c) => {
+    console.log('[DEBUG] Ping trace hit!');
+    return c.json({ status: 'alive', message: 'Routing is working (Node Adapter)' });
+});
+
+app.get('/api/debug-db', async (c) => {
+    const databaseUrl = process.env.DATABASE_URL || 'NOT_SET';
+    const hiddenUrl = databaseUrl !== 'NOT_SET'
+        ? `${databaseUrl.substring(0, 20)}...`
+        : 'N/A';
+
+    console.log(`[DEBUG] Handling request. DB_URL prefix: ${hiddenUrl}`);
 
     try {
-        const app = new Hono();
-        console.log('[DEBUG] Hono instantiated successfully');
-
-        res.status(200).json({
-            status: 'alive',
-            message: 'Hono loaded successfully within Native Handler',
-            env: process.env.VERCEL ? 'Vercel' : 'Local'
-        });
-    } catch (e) {
-        console.error('[DEBUG] Hono instantiation failed', e);
-        res.status(500).json({ error: String(e) });
+        const start = Date.now();
+        const client = await getPool().connect();
+        try {
+            const res = await client.query('SELECT NOW() as now');
+            const duration = Date.now() - start;
+            client.release();
+            return c.json({
+                status: 'success',
+                message: 'Connected to DB',
+                time: res.rows[0].now,
+                duration: `${duration}ms`,
+                env_check: hiddenUrl
+            });
+        } catch (queryErr) {
+            client.release();
+            console.error('[DEBUG] Query failed:', queryErr);
+            return c.json({
+                status: 'error',
+                message: 'Query failed',
+                error: String(queryErr)
+            }, 500);
+        }
+    } catch (connErr) {
+        console.error('[DEBUG] Connection failed:', connErr);
+        return c.json({
+            status: 'error',
+            message: 'Connection failed',
+            error: String(connErr),
+            hint: 'Check IP Allowlist in Supabase'
+        }, 500);
     }
-}
+})
+
+export default handler
+
+// Explicitly define the runtime as Node.js
+export const config = {
+    runtime: 'nodejs',
+};
