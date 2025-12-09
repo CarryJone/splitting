@@ -70,7 +70,18 @@ groups.get('/:id', async (c) => {
 // Add a member to a group
 groups.post('/:id/members', async (c) => {
     const groupId = c.req.param('id');
-    const { name } = await c.req.json();
+    console.log(`[API] POST /api/groups/${groupId}/members called`);
+
+    let body;
+    try {
+        body = await c.req.json();
+    } catch (e) {
+        console.error('[API] Failed to parse JSON body', e);
+        return c.json({ error: 'Invalid JSON' }, 400);
+    }
+
+    const { name } = body;
+    console.log(`[API] Adding member: ${name} to group: ${groupId}`);
 
     if (!name) {
         return c.json({ error: 'Member name is required' }, 400);
@@ -78,20 +89,24 @@ groups.post('/:id/members', async (c) => {
 
     try {
         // Verify group exists
+        console.log('[API] Verifying group existence...');
         const groupCheck = await query('SELECT id FROM groups WHERE id = $1', [groupId]);
         if (groupCheck.rows.length === 0) {
+            console.log('[API] Group not found');
             return c.json({ error: 'Group not found' }, 404);
         }
 
+        console.log('[API] Inserting member...');
         const result = await query(
             'INSERT INTO members (group_id, name) VALUES ($1, $2) RETURNING *',
             [groupId, name]
         );
         const member: Member = result.rows[0];
+        console.log(`[API] Member created: ${member.id}`);
         return c.json(member, 201);
     } catch (err) {
-        console.error(err);
-        return c.json({ error: 'Failed to add member' }, 500);
+        console.error('[API] Failed to add member:', err);
+        return c.json({ error: 'Failed to add member', details: String(err) }, 500);
     }
 });
 
