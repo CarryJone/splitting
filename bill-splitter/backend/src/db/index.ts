@@ -4,13 +4,23 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const dbUrl = process.env.DATABASE_URL;
-console.log(`[DB] Initializing pool. Database URL is ${dbUrl ? 'SET' : 'MISSING'}`);
+
+if (!dbUrl) {
+    console.error('[DB] CRITICAL: DATABASE_URL is not set in environment variables!');
+} else {
+    console.log(`[DB] Initializing pool. Database URL is SET (Length: ${dbUrl.length})`);
+}
 
 export const pool = new Pool({
     connectionString: dbUrl,
     ssl: {
         rejectUnauthorized: false
-    }
+    },
+    connectionTimeoutMillis: 5000 // Fail fast if connection hangs
+});
+
+pool.on('error', (err) => {
+    console.error('[DB] Unexpected error on idle client', err);
 });
 
 export const query = async (text: string, params?: any[]) => {
