@@ -5,7 +5,9 @@ import groups from './routes/groups'
 
 const app = new Hono()
 
-app.use('/*', cors())
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/*', cors())
+}
 
 app.get('/', (c) => {
   return c.text('Bill Splitter API is running!')
