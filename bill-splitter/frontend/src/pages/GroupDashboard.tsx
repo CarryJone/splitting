@@ -19,9 +19,12 @@ export default function GroupDashboard() {
     const [showAddExpense, setShowAddExpense] = useState(false);
     const [editingExpense, setEditingExpense] = useState<any>(null);
 
+    const [error, setError] = useState<string | null>(null);
+
     const fetchData = async () => {
         if (!id) return;
         setLoading(true);
+        setError(null);
         try {
             const [groupRes, settlementRes] = await Promise.all([
                 getGroup(id),
@@ -29,8 +32,9 @@ export default function GroupDashboard() {
             ]);
             setGroup(groupRes.data);
             setSettlement(settlementRes.data);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            setError(err.response?.data?.error || err.message || '無法連線至伺服器');
         } finally {
             setLoading(false);
         }
@@ -58,9 +62,28 @@ export default function GroupDashboard() {
         }
     };
 
-
-
     if (loading) return <LoadingScreen />;
+
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+                <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center max-w-sm w-full">
+                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-2xl">⚠️</span>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">發生錯誤</h2>
+                    <p className="text-gray-500 mb-6">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-colors"
+                    >
+                        重新整理
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (!group) return <div className="min-h-screen flex items-center justify-center">找不到群組</div>;
 
     return (
