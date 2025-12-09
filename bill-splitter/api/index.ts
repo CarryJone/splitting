@@ -56,7 +56,11 @@ app.get('/api/debug-db', async (c) => {
 
 export default handler
 
-// Explicitly define the runtime as Node.js
+// Explicitly define the runtime as Node.js and disable body parsing
+// to allow Hono to handle the request stream directly.
 export const config = {
     runtime: 'nodejs',
+    api: {
+        bodyParser: false,
+    },
 };
