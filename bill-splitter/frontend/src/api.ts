@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || '/api',
-    timeout: 15000, // 15 seconds timeout
+    timeout: 60000, // 60 seconds timeout for cold starts
 });
 
 export const createGroup = (name: string) => api.post('/groups', { name });
