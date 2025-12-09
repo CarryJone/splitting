@@ -14,9 +14,13 @@ app.get('/', (c) => {
 app.route('/api/groups', groups)
 
 const port = 3000
-console.log(`Server is running on port ${port}`)
 
-serve({
-  fetch: app.fetch,
-  port
-})
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  console.log(`Server is running on port ${port}`)
+  serve({
+    fetch: app.fetch,
+    port
+  })
+}
+
+export default app

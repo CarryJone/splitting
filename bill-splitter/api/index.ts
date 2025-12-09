@@ -1,90 +1,54 @@
 import { handle } from 'hono/vercel'
-import { Hono } from 'hono'
-import groups from '../backend/src/routes/groups'
-import { Pool } from 'pg'; // Import pg directly
-// import { pool } from '../backend/src/db' // Remove external import
+import app from '../backend/src/index'
+import { pool } from '../backend/src/db/index'
 
-const app = new Hono()
-
-// --- INLINED DB CONNECTION FOR DEBUGGING ---
-const dbUrl = process.env.DATABASE_URL;
-if (!dbUrl) {
-    console.error('[API INLINE] CRITICAL: DATABASE_URL is not set!');
-} else {
-    console.log(`[API INLINE] DATABASE_URL is set (Length: ${dbUrl.length})`);
-    // Print the host/port to verify (masking password)
-    const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@');
-    console.log(`[API INLINE] Connection String: ${maskedUrl}`);
-}
-
-const pool = new Pool({
-    connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false }, // Critical for Supabase
-    connectionTimeoutMillis: 5000,
-});
-
-pool.on('error', (err) => {
-    console.error('[API INLINE] Pool Error:', err);
-});
-// -------------------------------------------
-
-// app.use('/*', cors()) 
-
-app.get('/', (c) => {
-    return c.text('Bill Splitter API is running!')
-})
-
-app.get('/api', (c) => {
-    return c.text('Bill Splitter API is running!')
-})
-
-app.route('/api/groups', groups)
-
+// Mount debug route directly on the app
 app.get('/api/debug-db', async (c) => {
-    const diagnostics = {
-        env_var_present: !!dbUrl,
-        env_var_length: dbUrl?.length || 0,
-        connection_string_preview: dbUrl ? dbUrl.replace(/:([^:@]+)@/, ':****@') : 'N/A',
-        db_connectivity: 'unknown',
-        error: null as any,
-        timestamp: new Date().toISOString()
-    };
+    const databaseUrl = process.env.DATABASE_URL || 'NOT_SET';
+    const hiddenUrl = databaseUrl !== 'NOT_SET'
+        ? `${databaseUrl.substring(0, 20)}...`
+        : 'N/A';
 
-    // Use Client instead of Pool for a one-off connection test to avoid pool-related hangs
-    const { Client } = await import('pg');
-    const client = new Client({
-        connectionString: dbUrl,
-        ssl: { rejectUnauthorized: false },
-        connectionTimeoutMillis: 5000,
-    });
+    console.log(`[DEBUG] Handling request. DB_URL prefix: ${hiddenUrl}`);
 
     try {
-        console.log('[Debug-DB] Attempting connection via SINGLE CLIENT...');
-        await client.connect();
-        const res = await client.query('SELECT NOW()');
-        await client.end();
-        console.log('[Debug-DB] Success:', res.rows[0]);
-
-        diagnostics.db_connectivity = 'success';
-        return c.json({ ...diagnostics, now: res.rows[0].now });
-    } catch (err: any) {
-        console.error('[Debug-DB] Connection failed:', err);
-        diagnostics.db_connectivity = 'failed';
-        diagnostics.error = {
-            message: err.message,
-            code: err.code,
-            stack: err.stack
-        };
-        // Try to properly close client even on error if it's open
-        try { await client.end(); } catch (e) { }
-
-        return c.json(diagnostics, 500);
+        const start = Date.now();
+        // Force a new client connection to test connectivity
+        const client = await pool.connect();
+        try {
+            const res = await client.query('SELECT NOW() as now');
+            const duration = Date.now() - start;
+            client.release();
+            return c.json({
+                status: 'success',
+                message: 'Connected to DB',
+                time: res.rows[0].now,
+                duration: `${duration}ms`,
+                env_check: hiddenUrl
+            });
+        } catch (queryErr) {
+            client.release();
+            console.error('[DEBUG] Query failed:', queryErr);
+            return c.json({
+                status: 'error',
+                message: 'Query failed',
+                error: String(queryErr)
+            }, 500);
+        }
+    } catch (connErr) {
+        console.error('[DEBUG] Connection failed:', connErr);
+        return c.json({
+            status: 'error',
+            message: 'Connection failed',
+            error: String(connErr),
+            hint: 'Check IP Allowlist in Supabase'
+        }, 500);
     }
-});
+})
 
-// Explicitly define the runtime as Node.js to prevent Vercel from inferring Edge
+export default handle(app)
+
+// Explicitly define the runtime as Node.js
 export const config = {
     runtime: 'nodejs',
 };
-
-export default handle(app)
