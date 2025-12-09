@@ -1,27 +1,20 @@
-import { handle } from 'hono/vercel'
 import { Hono } from 'hono'
-// import { Pool } from 'pg' // REMOVED to isolate Hono
 
-// Isolated Hono App (No DB Library)
-const app = new Hono()
+// Native Handler containing Hono instantiation
+export default function handler(req, res) {
+    console.log('[DEBUG] Native Handler with Hono Import Hit!');
 
-app.get('/api/ping-trace', (c) => {
-    return c.json({
-        status: 'alive',
-        message: 'Hono framework is working (No PG)',
-        env: process.env.VERCEL ? 'Vercel' : 'Local'
-    });
-})
+    try {
+        const app = new Hono();
+        console.log('[DEBUG] Hono instantiated successfully');
 
-app.get('/api/debug-db', (c) => {
-    return c.json({
-        status: 'skipped',
-        message: 'DB library removed for isolation test.'
-    });
-})
-
-export default handle(app)
-
-export const config = {
-    runtime: 'nodejs',
-};
+        res.status(200).json({
+            status: 'alive',
+            message: 'Hono loaded successfully within Native Handler',
+            env: process.env.VERCEL ? 'Vercel' : 'Local'
+        });
+    } catch (e) {
+        console.error('[DEBUG] Hono instantiation failed', e);
+        res.status(500).json({ error: String(e) });
+    }
+}
