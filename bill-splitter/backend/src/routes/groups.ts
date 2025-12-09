@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { query, pool } from '../db';
+import { query, getPool } from '../db';
 import { Group, Member, Expense, ExpenseSplit } from '../types';
 import { calculateSettlement } from '../services/debtSimplification';
 
@@ -206,7 +206,7 @@ groups.put('/:id/expenses/:expenseId', async (c) => {
         return c.json({ error: 'Invalid expense data' }, 400);
     }
 
-    const client = await pool.connect();
+    const client = await getPool().connect();
 
     try {
         await client.query('BEGIN');

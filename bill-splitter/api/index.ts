@@ -1,6 +1,6 @@
 import { handle } from 'hono/vercel'
 import app from '../backend/src/index'
-import { pool } from '../backend/src/db/index'
+import { getPool } from '../backend/src/db/index'
 
 // Mount debug route directly on the app
 app.get('/api/ping-trace', (c) => {
@@ -19,7 +19,7 @@ app.get('/api/debug-db', async (c) => {
     try {
         const start = Date.now();
         // Force a new client connection to test connectivity
-        const client = await pool.connect();
+        const client = await getPool().connect();
         try {
             const res = await client.query('SELECT NOW() as now');
             const duration = Date.now() - start;
