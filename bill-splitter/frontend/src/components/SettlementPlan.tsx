@@ -72,24 +72,38 @@ export default function SettlementPlan({ data }: Props) {
 
                                 {/* Bar */}
                                 <div className="w-full flex">
-                                    <div className="flex-1 flex justify-end">
+                                    <div className="flex-1 flex justify-end items-center gap-2">
+                                        {item.amount < 0 && Math.abs(item.amount) / maxBalance * 100 < 15 && (
+                                            <span className="text-red-500 font-bold text-xs">
+                                                ${Math.abs(item.amount).toLocaleString()}
+                                            </span>
+                                        )}
                                         {item.amount < 0 && (
                                             <div
                                                 className="h-6 bg-red-500 rounded-l-md flex items-center justify-end pr-2 text-xs text-white font-bold transition-all duration-500"
                                                 style={{ width: `${(Math.abs(item.amount) / maxBalance) * 100}%` }}
                                             >
-                                                ${Math.abs(item.amount).toLocaleString()}
+                                                {Math.abs(item.amount) / maxBalance * 100 >= 15 && (
+                                                    <span>${Math.abs(item.amount).toLocaleString()}</span>
+                                                )}
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 flex justify-start">
+                                    <div className="flex-1 flex justify-start items-center gap-2">
                                         {item.amount > 0 && (
                                             <div
                                                 className="h-6 bg-green-500 rounded-r-md flex items-center pl-2 text-xs text-white font-bold transition-all duration-500"
                                                 style={{ width: `${(item.amount / maxBalance) * 100}%` }}
                                             >
-                                                ${item.amount.toLocaleString()}
+                                                {item.amount / maxBalance * 100 >= 15 && (
+                                                    <span>${item.amount.toLocaleString()}</span>
+                                                )}
                                             </div>
+                                        )}
+                                        {item.amount > 0 && item.amount / maxBalance * 100 < 15 && (
+                                            <span className="text-green-500 font-bold text-xs">
+                                                ${item.amount.toLocaleString()}
+                                            </span>
                                         )}
                                     </div>
                                 </div>
