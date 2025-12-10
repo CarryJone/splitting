@@ -3,12 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const dbUrl = process.env.DATABASE_URL;
-
 let pool: Pool | null = null;
 
 const getPool = () => {
     if (!pool) {
+        const dbUrl = process.env.DATABASE_URL;
         if (!dbUrl) {
             console.error('[DB] CRITICAL: DATABASE_URL is not set in environment variables!');
             throw new Error('DATABASE_URL is not set');
@@ -16,9 +15,7 @@ const getPool = () => {
         console.log(`[DB] Initializing pool. Database URL is SET (Length: ${dbUrl.length})`);
         pool = new Pool({
             connectionString: dbUrl,
-            ssl: {
-                rejectUnauthorized: false
-            },
+            // ssl: { rejectUnauthorized: false }, // Let the connection string handle SSL (e.g. ?sslmode=require)
             connectionTimeoutMillis: 5000,
             max: 1, // Serverless best practice: limit connections
             idleTimeoutMillis: 1000 // Close idle connections quickly

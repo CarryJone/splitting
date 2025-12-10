@@ -1,4 +1,4 @@
-import { serve } from '@hono/node-server'
+// import { serve } from '@hono/node-server' // Removed for Worker compatibility
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import groups from './routes/groups'
@@ -8,6 +8,14 @@ const app = new Hono()
 if (process.env.NODE_ENV !== 'production') {
   app.use('/*', cors())
 }
+
+app.use('*', async (c, next) => {
+  // Polyfill process.env for legacy node code compatibility in Workers
+  if (c.env && (c.env as any).DATABASE_URL) {
+    process.env.DATABASE_URL = (c.env as any).DATABASE_URL as string;
+  }
+  await next();
+})
 
 app.get('/api/ping-trace', (c) => {
   return c.json({ status: 'alive', message: 'Local backend is working' });
@@ -21,12 +29,11 @@ app.route('/api/groups', groups)
 
 const port = 3000
 
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  console.log(`Server is running on port ${port}`)
-  serve({
-    fetch: app.fetch,
-    port
-  })
-}
+// Cloudflare Workers Entry Point
+// The 'serve' from @hono/node-server is NOT needed for Workers.
+// Workers runtime automatically detects the default export.
 
 export default app
+
+
+// export default app // Removed duplicate

@@ -343,7 +343,7 @@ groups.get('/', async (c) => {
         return c.json(result.rows);
     } catch (err) {
         console.error('[API] Error fetching groups:', err);
-        return c.json({ error: 'Failed to fetch groups' }, 500);
+        return c.json({ error: 'Failed to fetch groups', details: String(err) }, 500);
     }
 });
 
