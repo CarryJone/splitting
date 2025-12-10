@@ -5,9 +5,7 @@ import groups from './routes/groups'
 
 const app = new Hono()
 
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/*', cors())
-}
+app.use('/*', cors())
 
 app.use('*', async (c, next) => {
   // Polyfill process.env for legacy node code compatibility in Workers
