@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function ProfileEditorModal({ groupId, member, onClose, onSuccess, onLogout }: Props) {
-    const [name, setName] = useState(member.name);
+    const [name, setName] = useState(member.name || '');
     const [bankCode, setBankCode] = useState(member.bank_code || '');
     const [bankAccount, setBankAccount] = useState(member.bank_account || '');
     const [loading, setLoading] = useState(false);
@@ -109,7 +109,7 @@ export default function ProfileEditorModal({ groupId, member, onClose, onSuccess
                             }}
                             className="w-full text-gray-400 hover:text-gray-600 font-medium py-2 text-sm transition-colors"
                         >
-                            不是 {member.name}？切換身份
+                            不是 {member.name || 'Unknown'}？切換身份
                         </button>
                     </div>
                 </form>

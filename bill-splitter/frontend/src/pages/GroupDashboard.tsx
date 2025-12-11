@@ -133,7 +133,7 @@ export default function GroupDashboard() {
             <header className="bg-white sticky top-0 z-20 border-b border-gray-200/50">
                 <div className="max-w-2xl mx-auto px-4 py-4 flex justify-between items-center">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900 truncate tracking-tight">{group.name}</h1>
+                        <h1 className="text-xl font-bold text-gray-900 truncate tracking-tight">{group.name || 'Group'}</h1>
                         <div className="text-xs text-gray-500 font-medium tracking-wide">ID: {group.id.slice(0, 8)}...</div>
                     </div>
                     {/* User Profile Trigger */}
@@ -143,9 +143,9 @@ export default function GroupDashboard() {
                             className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 pr-3 pl-2 py-1.5 rounded-full transition-colors"
                         >
                             <div className="w-6 h-6 bg-brand-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                                {currentUser.name.slice(0, 1)}
+                                {currentUser.name?.slice(0, 1) || '?'}
                             </div>
-                            <span className="text-xs font-bold text-gray-700 max-w-[80px] truncate">{currentUser.name}</span>
+                            <span className="text-xs font-bold text-gray-700 max-w-[80px] truncate">{currentUser.name || 'Unknown'}</span>
                         </button>
                     ) : (
                         <div className="bg-brand-50 text-brand-700 px-3 py-1 rounded-full text-xs font-semibold">

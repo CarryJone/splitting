@@ -121,9 +121,9 @@ export default function MemberList({ groupId, members, onUpdate }: Props) {
                         ) : (
                             <>
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${getMemberColor(member.id)}`}>
-                                    {getMemberInitials(member.name)}
+                                    {getMemberInitials(member.name || '?')}
                                 </div>
-                                <span className="text-sm font-medium text-gray-700">{member.name}</span>
+                                <span className="text-sm font-medium text-gray-700">{member.name || 'Unknown'}</span>
 
                                 {/* Hover Actions */}
                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white shadow-lg rounded-lg p-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-all pointer-events-none group-hover:pointer-events-auto z-10 scale-90 group-hover:scale-100">

@@ -45,7 +45,7 @@ export default function IdentityModal({ members, onSelect, onCreate }: Props) {
                                 onClick={() => onSelect(m.id)}
                                 className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-white hover:border-brand-500 hover:shadow-md transition-all group"
                             >
-                                <span className="font-bold text-gray-700 group-hover:text-brand-600 font-lg">{m.name}</span>
+                                <span className="font-bold text-gray-700 group-hover:text-brand-600 font-lg">{m.name || 'Unknown'}</span>
                                 <span className="text-gray-300 group-hover:text-brand-500">
                                     <Check className="w-5 h-5" />
                                 </span>
