@@ -1,45 +1,31 @@
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
+export interface QueryResult {
+    rows: any[];
+    rowCount: number;
+}
 
-dotenv.config();
-
-let pool: Pool | null = null;
-
-const getPool = () => {
-    if (!pool) {
-        const dbUrl = process.env.DATABASE_URL;
-        if (!dbUrl) {
-            console.error('[DB] CRITICAL: DATABASE_URL is not set in environment variables!');
-            throw new Error('DATABASE_URL is not set');
-        }
-        console.log(`[DB] Initializing pool. Database URL is SET (Length: ${dbUrl.length})`);
-        pool = new Pool({
-            connectionString: dbUrl,
-            // ssl: { rejectUnauthorized: false }, // Let the connection string handle SSL (e.g. ?sslmode=require)
-            connectionTimeoutMillis: 5000,
-            max: 1, // Serverless best practice: limit connections
-            idleTimeoutMillis: 1000 // Close idle connections quickly
-        });
-
-        pool.on('error', (err) => {
-            console.error('[DB] Unexpected error on idle client', err);
-        });
-    }
-    return pool;
-};
-
-export { getPool };
-
-export const query = async (text: string, params?: any[]) => {
+// Helper to provide a postgres-like query interface for D1
+export const query = async (db: D1Database, text: string, params: any[] = []): Promise<QueryResult> => {
     const start = Date.now();
     try {
-        console.log(`[DB] Querying: ${text} | Params: ${JSON.stringify(params)}`);
-        const res = await getPool().query(text, params);
+        console.log(`[D1] Querying: ${text} | Params: ${JSON.stringify(params)}`);
+
+        // Convert Postgres-style $1, $2 params to SQLite ?
+        // Note: This is a simple regex replacement. It might break if $1 is inside a string literal, 
+        // but for this project's simple queries it should be fine.
+        const sqliteText = text.replace(/\$\d+/g, '?');
+
+        const stmt = db.prepare(sqliteText).bind(...params);
+        const result = await stmt.all();
+
         const duration = Date.now() - start;
-        console.log(`[DB] Query executed in ${duration}ms | Rows: ${res.rowCount}`);
-        return res;
+        console.log(`[D1] Query executed in ${duration}ms | Rows: ${result.results?.length}`);
+
+        return {
+            rows: result.results || [],
+            rowCount: result.results?.length || 0
+        };
     } catch (err) {
-        console.error('[DB] Query Error:', err);
+        console.error('[D1] Query Error:', err);
         throw err;
     }
 };
