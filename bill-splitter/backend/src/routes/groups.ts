@@ -6,7 +6,7 @@ import { Bindings } from '../index';
 
 const groups = new Hono<{ Bindings: Bindings }>();
 
-// Helper to generate UUIDs (since D1/SQLite doesn't have gen_random_uuid() built-in easily accessible)
+// Helper to generate UUIDs
 const generateUUID = () => crypto.randomUUID();
 
 // Create a new group
@@ -18,9 +18,7 @@ groups.post('/', async (c) => {
     }
 
     try {
-        // D1/SQLite: Need to generate UUID manually if not using a trigger
         const id = generateUUID();
-        // SQLite supports RETURNING *
         const result = await query(
             c.env.DB,
             'INSERT INTO groups (id, name) VALUES ($1, $2) RETURNING *',
@@ -48,7 +46,6 @@ groups.get('/:id', async (c) => {
         const membersResult = await query(c.env.DB, 'SELECT * FROM members WHERE group_id = $1', [id]);
         const expensesResult = await query(c.env.DB, 'SELECT * FROM expenses WHERE group_id = $1 ORDER BY created_at DESC', [id]);
 
-        // Fetch all splits for these expenses
         const splitsResult = await query(
             c.env.DB,
             'SELECT es.* FROM expense_splits es JOIN expenses e ON es.expense_id = e.id WHERE e.group_id = $1',
@@ -61,7 +58,7 @@ groups.get('/:id', async (c) => {
                 .filter(split => split.expense_id === expense.id)
                 .map(split => ({
                     ...split,
-                    member_id: split.member_member_id // Map DB column to frontend expected prop
+                    member_id: split.member_member_id
                 }))
         }));
 
@@ -79,7 +76,8 @@ groups.get('/:id', async (c) => {
 // Add a member to a group
 groups.post('/:id/members', async (c) => {
     const groupId = c.req.param('id');
-    const { name } = await c.req.json();
+    const body = await c.req.json();
+    const { name } = body;
 
     if (!name) {
         return c.json({ error: 'Member name is required' }, 400);
@@ -93,8 +91,8 @@ groups.post('/:id/members', async (c) => {
 
         const result = await query(
             c.env.DB,
-            'INSERT INTO members (group_id, name) VALUES ($1, $2) RETURNING *',
-            [groupId, name]
+            'INSERT INTO members (group_id, name, bank_code, bank_account) VALUES ($1, $2, $3, $4) RETURNING *',
+            [groupId, name, body.bank_code || null, body.bank_account || null]
         );
         const member: Member = result.rows[0];
         return c.json(member, 201);
@@ -108,7 +106,7 @@ groups.post('/:id/members', async (c) => {
 groups.put('/:id/members/:memberId', async (c) => {
     const groupId = c.req.param('id');
     const memberId = c.req.param('memberId');
-    const { name } = await c.req.json();
+    const { name, bank_code, bank_account } = await c.req.json();
 
     if (!name) {
         return c.json({ error: 'Member name is required' }, 400);
@@ -117,8 +115,8 @@ groups.put('/:id/members/:memberId', async (c) => {
     try {
         const result = await query(
             c.env.DB,
-            'UPDATE members SET name = $1 WHERE id = $2 AND group_id = $3 RETURNING *',
-            [name, memberId, groupId]
+            'UPDATE members SET name = $1, bank_code = $2, bank_account = $3 WHERE id = $4 AND group_id = $5 RETURNING *',
+            [name, bank_code || null, bank_account || null, memberId, groupId]
         );
 
         if (result.rows.length === 0) {
@@ -138,7 +136,6 @@ groups.delete('/:id/members/:memberId', async (c) => {
     const memberId = c.req.param('memberId');
 
     try {
-        // Check if member is part of any expenses (payer or split)
         const expenseCheck = await query(
             c.env.DB,
             'SELECT 1 FROM expenses WHERE payer_member_id = $1 LIMIT 1',
@@ -181,13 +178,6 @@ groups.post('/:id/expenses', async (c) => {
     }
 
     try {
-        // D1 Batch Execution for Atomicity?
-        // To properly do this, we would use c.env.DB.batch([...statements]).
-        // But since we need the ID of the inserted expense to insert splits, we can't easily batch 
-        // unless we use a Common Table Expression (CTE) or optimistic IDs.
-        // For simplicity in this migration, we do sequential inserts. 
-        // (Risk: Ghost expense if splits fail).
-
         const expenseResult = await query(
             c.env.DB,
             'INSERT INTO expenses (group_id, payer_member_id, amount, description, created_by_name) VALUES ($1, $2, $3, $4, $5) RETURNING *',
@@ -195,7 +185,6 @@ groups.post('/:id/expenses', async (c) => {
         );
         const expense: Expense = expenseResult.rows[0];
 
-        // Create Splits
         for (const split of splits) {
             await query(
                 c.env.DB,
@@ -222,13 +211,11 @@ groups.put('/:id/expenses/:expenseId', async (c) => {
     }
 
     try {
-        // Verify expense exists
         const check = await query(c.env.DB, 'SELECT id FROM expenses WHERE id = $1 AND group_id = $2', [expenseId, groupId]);
         if (check.rows.length === 0) {
             return c.json({ error: 'Expense not found' }, 404);
         }
 
-        // Update Expense
         const expenseResult = await query(
             c.env.DB,
             'UPDATE expenses SET payer_member_id = $1, amount = $2, description = $3, created_by_name = $4 WHERE id = $5 RETURNING *',
@@ -236,10 +223,8 @@ groups.put('/:id/expenses/:expenseId', async (c) => {
         );
         const expense: Expense = expenseResult.rows[0];
 
-        // Delete old splits
         await query(c.env.DB, 'DELETE FROM expense_splits WHERE expense_id = $1', [expenseId]);
 
-        // Insert new splits
         for (const split of splits) {
             await query(
                 c.env.DB,
@@ -303,11 +288,21 @@ groups.get('/:id/settlement', async (c) => {
 
         const memberMap = new Map(members.map((m: Member) => [m.id, m.name]));
 
-        const readablePlan = plan.map(p => ({
-            from: memberMap.get(p.from) || 'Unknown',
-            to: memberMap.get(p.to) || 'Unknown',
-            amount: p.amount
-        }));
+        // Enhance plan with receiver's bank info
+        // Need to find receiver member object
+        const receiverMap = new Map(members.map((m: Member) => [m.id, m]));
+
+        const readablePlan = plan.map(p => {
+            const receiver = receiverMap.get(p.to);
+            return {
+                from: memberMap.get(p.from) || 'Unknown',
+                to: memberMap.get(p.to) || 'Unknown',
+                amount: p.amount,
+                // Add bank info to response
+                bank_code: receiver?.bank_code,
+                bank_account: receiver?.bank_account
+            };
+        });
 
         const totalExpense = expenses.reduce((sum: number, e: Expense) => sum + e.amount, 0);
 

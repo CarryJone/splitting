@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS members (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     group_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    bank_code TEXT,
+    bank_account TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
 );

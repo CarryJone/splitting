@@ -9,6 +9,8 @@ export interface Member {
     id: number;
     group_id: string;
     name: string;
+    bank_code?: string;
+    bank_account?: string;
     created_at: Date;
 }
 

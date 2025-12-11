@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ArrowRight, CheckCircle2, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ArrowRight, CheckCircle2, Wallet, Copy, Check } from 'lucide-react';
 
 interface Props {
     data: any;
@@ -9,15 +9,14 @@ export default function SettlementPlan({ data }: Props) {
     if (!data) return null;
 
     const { total_expense, settlement_plan } = data;
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
     // Calculate net balance for each person
     const netBalances = useMemo(() => {
         const balances: { [key: string]: number } = {};
 
         settlement_plan.forEach((debt: any) => {
-            // Payer (from) loses money (negative)
             balances[debt.from] = (balances[debt.from] || 0) - debt.amount;
-            // Receiver (to) gains money (positive)
             balances[debt.to] = (balances[debt.to] || 0) + debt.amount;
         });
 
@@ -28,6 +27,12 @@ export default function SettlementPlan({ data }: Props) {
     }, [settlement_plan]);
 
     const maxBalance = Math.max(...netBalances.map(b => Math.abs(b.amount)), 1);
+
+    const handleCopy = (text: string, index: number) => {
+        navigator.clipboard.writeText(text);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+    };
 
     if (settlement_plan.length === 0) {
         return (
@@ -60,17 +65,12 @@ export default function SettlementPlan({ data }: Props) {
                 <div className="space-y-4">
                     {netBalances.map((item) => (
                         <div key={item.name} className="flex items-center gap-4">
-                            {/* Name */}
                             <div className="w-16 text-sm font-bold text-gray-700 truncate text-right shrink-0">
                                 {item.name}
                             </div>
 
-                            {/* Bar Chart Area */}
                             <div className="flex-1 flex items-center h-8 relative">
-                                {/* Center Line */}
                                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200"></div>
-
-                                {/* Bar */}
                                 <div className="w-full flex">
                                     <div className="flex-1 flex justify-end items-center gap-2">
                                         {item.amount < 0 && Math.abs(item.amount) / maxBalance * 100 < 15 && (
@@ -127,22 +127,57 @@ export default function SettlementPlan({ data }: Props) {
             <div className="space-y-3">
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-2">建議轉帳方案</h3>
                 {settlement_plan.map((debt: any, index: number) => (
-                    <div key={index} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
-                        <div className="flex items-center gap-4 flex-1">
-                            <div className="font-bold text-gray-900 text-lg min-w-[3rem] text-center">{debt.from}</div>
-                            <div className="flex-1 flex flex-col items-center px-2">
-                                <div className="text-xs text-gray-400 mb-1 font-medium">支付給</div>
-                                <div className="w-full h-0.5 bg-gray-100 relative">
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300">
-                                        <ArrowRight className="w-4 h-4" />
+                    <div key={index} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 transition-all animate-fade-in relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className="font-bold text-gray-900 text-lg min-w-[3rem] text-center">{debt.from}</div>
+                                <div className="flex-1 flex flex-col items-center px-2">
+                                    <div className="text-xs text-gray-400 mb-1 font-medium">支付給</div>
+                                    <div className="w-full h-0.5 bg-gray-100 relative">
+                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300">
+                                            <ArrowRight className="w-4 h-4" />
+                                        </div>
                                     </div>
                                 </div>
+                                <div className="font-bold text-gray-900 text-lg min-w-[3rem] text-center">{debt.to}</div>
                             </div>
-                            <div className="font-bold text-gray-900 text-lg min-w-[3rem] text-center">{debt.to}</div>
+                            <div className="ml-6 font-bold text-brand-600 text-xl tracking-tight">
+                                ${debt.amount.toLocaleString()}
+                            </div>
                         </div>
-                        <div className="ml-6 font-bold text-brand-600 text-xl tracking-tight">
-                            ${debt.amount.toLocaleString()}
-                        </div>
+
+                        {/* Bank Info Section */}
+                        {debt.bank_account && (
+                            <div className="pt-3 border-t border-gray-50 flex items-center justify-between bg-gray-50/50 -mx-5 -mb-5 px-5 py-3 mt-1">
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Wallet className="w-4 h-4 text-brand-500" />
+                                    <span>收款帳號:</span>
+                                    <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-gray-200">
+                                        {debt.bank_code && <span className="text-gray-400 mr-2">{debt.bank_code}</span>}
+                                        {debt.bank_account}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => handleCopy(`${debt.bank_code || ''} ${debt.bank_account}`.trim(), index)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copiedIndex === index
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-white border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-200'
+                                        }`}
+                                >
+                                    {copiedIndex === index ? (
+                                        <>
+                                            <Check className="w-3.5 h-3.5" />
+                                            已複製
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy className="w-3.5 h-3.5" />
+                                            複製
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
