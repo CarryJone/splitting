@@ -7,9 +7,10 @@ interface Props {
     member: any;
     onClose: () => void;
     onSuccess: () => void;
+    onLogout: () => void;
 }
 
-export default function ProfileEditorModal({ groupId, member, onClose, onSuccess }: Props) {
+export default function ProfileEditorModal({ groupId, member, onClose, onSuccess, onLogout }: Props) {
     const [name, setName] = useState(member.name);
     const [bankCode, setBankCode] = useState(member.bank_code || '');
     const [bankAccount, setBankAccount] = useState(member.bank_account || '');
@@ -90,13 +91,25 @@ export default function ProfileEditorModal({ groupId, member, onClose, onSuccess
                         </div>
                     </div>
 
-                    <div className="pt-2">
+                    <div className="pt-2 space-y-3">
                         <button
                             type="submit"
                             disabled={loading}
                             className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-600/20 active:translate-y-0.5 transition-all disabled:opacity-50"
                         >
                             {loading ? '儲存中...' : '儲存設定'}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (confirm('確定要切換身份嗎？這不會刪除此成員，只會清除您瀏覽器的記憶。')) {
+                                    onLogout();
+                                }
+                            }}
+                            className="w-full text-gray-400 hover:text-gray-600 font-medium py-2 text-sm transition-colors"
+                        >
+                            不是 {member.name}？切換身份
                         </button>
                     </div>
                 </form>
