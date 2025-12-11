@@ -246,18 +246,20 @@ export default function GroupDashboard() {
                 />
             )}
 
-            <ProfileEditorModal
-                groupId={group.id}
-                member={currentUser}
-                onClose={() => setShowProfileModal(false)}
-                onSuccess={fetchData}
-                onLogout={() => {
-                    localStorage.removeItem(`bill-user-${group.id}`);
-                    setCurrentMemberId(null);
-                    setShowProfileModal(false);
-                    setShowIdentityModal(true);
-                }}
-            />
+            {showProfileModal && currentUser && (
+                <ProfileEditorModal
+                    groupId={group.id}
+                    member={currentUser}
+                    onClose={() => setShowProfileModal(false)}
+                    onSuccess={fetchData}
+                    onLogout={() => {
+                        localStorage.removeItem(`bill-user-${group.id}`);
+                        setCurrentMemberId(null);
+                        setShowProfileModal(false);
+                        setShowIdentityModal(true);
+                    }}
+                />
+            )}
         </div>
     );
 }
