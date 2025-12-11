@@ -125,11 +125,12 @@ export default function LandingPage() {
                                 className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-brand-200 transition-all group"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-lg">
-                                        {group.name.slice(0, 1)}
+                                    {/* Avatar Placeholder */}
+                                    <div className="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xl mb-3 group-hover:scale-110 transition-transform">
+                                        {(group.name || '?').slice(0, 1)}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-900">{group.name}</h3>
+                                        <h3 className="font-bold text-gray-900">{group.name || 'Unnamed Group'}</h3>
                                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
                                             <Clock className="w-3 h-3" />
                                             {new Date(group.created_at).toLocaleDateString()}

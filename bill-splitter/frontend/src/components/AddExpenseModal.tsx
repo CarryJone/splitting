@@ -134,7 +134,7 @@ export default function AddExpenseModal({ groupId, members, onClose, onSuccess, 
                                 >
                                     <option value="" disabled>選擇成員</option>
                                     {members.map(m => (
-                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                        <option key={m.id} value={m.id}>{m.name || 'Unknown'}</option>
                                     ))}
                                 </select>
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
@@ -167,7 +167,7 @@ export default function AddExpenseModal({ groupId, members, onClose, onSuccess, 
                                                 : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-200'
                                                 }`}
                                         >
-                                            <span className="font-bold text-sm truncate w-full text-center">{m.name}</span>
+                                            <span className="font-bold text-sm truncate w-full text-center">{m.name || 'Unknown'}</span>
                                             {isSelected && (
                                                 <div className="absolute -top-1.5 -right-1.5 bg-brand-500 text-white rounded-full p-0.5 shadow-sm">
                                                     <Check className="w-3 h-3" />
