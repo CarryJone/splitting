@@ -219,7 +219,11 @@ export default function GroupDashboard() {
                                 onDelete={handleDeleteExpense}
                             />
                         ) : (
-                            <SettlementPlan data={settlement} />
+                            <SettlementPlan
+                                data={settlement}
+                                groupId={id}
+                                onToggleSettlement={fetchData}
+                            />
                         )}
                     </div>
                 </div>

@@ -17,5 +17,6 @@ export const updateExpense = (groupId: string, expenseId: number, data: any) => 
 export const deleteExpense = (groupId: string, expenseId: number) => api.delete(`/groups/${groupId}/expenses/${expenseId}`);
 
 export const getSettlement = (groupId: string) => api.get(`/groups/${groupId}/settlement`);
+export const toggleSettlement = (groupId: string, fromId: number, toId: number) => api.post(`/groups/${groupId}/settlement/toggle`, { from_member_id: fromId, to_member_id: toId });
 
 export default api;

@@ -275,6 +275,7 @@ groups.get('/:id/settlement', async (c) => {
             'SELECT es.* FROM expense_splits es JOIN expenses e ON es.expense_id = e.id WHERE e.group_id = $1',
             [groupId]
         );
+        const statusRes = await query(c.env.DB, 'SELECT * FROM settlement_status WHERE group_id = $1', [groupId]);
 
         const members = membersRes.rows;
         const expenses = expensesRes.rows;
@@ -287,20 +288,26 @@ groups.get('/:id/settlement', async (c) => {
         const plan = calculateSettlement(members, expenses, splits);
 
         const memberMap = new Map(members.map((m: Member) => [m.id, m.name]));
-
-        // Enhance plan with receiver's bank info
-        // Need to find receiver member object
         const receiverMap = new Map(members.map((m: Member) => [m.id, m]));
+
+        // Map status for quick lookup: "from-to" -> is_settled
+        const statusMap = new Map();
+        statusRes.rows.forEach(row => {
+            statusMap.set(`${row.from_member_id}-${row.to_member_id}`, row.is_settled);
+        });
 
         const readablePlan = plan.map(p => {
             const receiver = receiverMap.get(p.to);
+            const isSettled = statusMap.get(`${p.from}-${p.to}`) === 1; // SQLite boolean is 1/0
             return {
                 from: memberMap.get(p.from) || 'Unknown',
                 to: memberMap.get(p.to) || 'Unknown',
+                from_id: p.from,
+                to_id: p.to,
                 amount: p.amount,
-                // Add bank info to response
                 bank_code: receiver?.bank_code,
-                bank_account: receiver?.bank_account
+                bank_account: receiver?.bank_account,
+                is_settled: isSettled
             };
         });
 
@@ -314,6 +321,47 @@ groups.get('/:id/settlement', async (c) => {
     } catch (err) {
         console.error(err);
         return c.json({ error: 'Failed to calculate settlement', details: String(err) }, 500);
+    }
+});
+
+// Toggle settlement status
+groups.post('/:id/settlement/toggle', async (c) => {
+    const groupId = c.req.param('id');
+    const { from_member_id, to_member_id } = await c.req.json();
+
+    if (!from_member_id || !to_member_id) {
+        return c.json({ error: 'Missing member IDs' }, 400);
+    }
+
+    try {
+        // SQLite upsert to toggle
+        // We first check if it exists
+        const check = await query(
+            c.env.DB,
+            'SELECT is_settled FROM settlement_status WHERE group_id = $1 AND from_member_id = $2 AND to_member_id = $3',
+            [groupId, from_member_id, to_member_id]
+        );
+
+        let newStatus = true;
+        if (check.rows.length > 0) {
+            newStatus = !check.rows[0].is_settled;
+            await query(
+                c.env.DB,
+                'UPDATE settlement_status SET is_settled = $1 WHERE group_id = $2 AND from_member_id = $3 AND to_member_id = $4',
+                [newStatus, groupId, from_member_id, to_member_id]
+            );
+        } else {
+            await query(
+                c.env.DB,
+                'INSERT INTO settlement_status (group_id, from_member_id, to_member_id, is_settled) VALUES ($1, $2, $3, $4)',
+                [groupId, from_member_id, to_member_id, true]
+            );
+        }
+
+        return c.json({ is_settled: newStatus });
+    } catch (err) {
+        console.error('Toggle error:', err);
+        return c.json({ error: 'Failed to toggle settlement', details: String(err) }, 500);
     }
 });
 

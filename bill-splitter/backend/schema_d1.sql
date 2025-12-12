@@ -42,3 +42,15 @@ CREATE TABLE IF NOT EXISTS expense_splits (
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_expenses_group_id ON expenses(group_id);
 CREATE INDEX IF NOT EXISTS idx_members_group_id ON members(group_id);
+
+-- 5. 結算狀態表
+CREATE TABLE IF NOT EXISTS settlement_status (
+    group_id TEXT NOT NULL,
+    from_member_id INTEGER NOT NULL,
+    to_member_id INTEGER NOT NULL,
+    is_settled BOOLEAN DEFAULT 0,
+    PRIMARY KEY (group_id, from_member_id, to_member_id),
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (from_member_id) REFERENCES members(id) ON DELETE CASCADE,
+    FOREIGN KEY (to_member_id) REFERENCES members(id) ON DELETE CASCADE
+);
