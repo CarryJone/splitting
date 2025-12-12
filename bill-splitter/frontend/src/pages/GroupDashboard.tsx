@@ -211,7 +211,13 @@ export default function GroupDashboard() {
 
                     <div className="min-h-[300px]">
                         {activeTab === 'expenses' ? (
-                            <ExpenseList expenses={group.expenses} members={group.members} onEdit={handleEditExpense} onDelete={handleDeleteExpense} />
+                            <ExpenseList
+                                expenses={group.expenses}
+                                members={group.members}
+                                currentMemberId={currentMemberId}
+                                onEdit={handleEditExpense}
+                                onDelete={handleDeleteExpense}
+                            />
                         ) : (
                             <SettlementPlan data={settlement} />
                         )}

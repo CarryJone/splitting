@@ -153,15 +153,14 @@ export default function SettlementPlan({ data }: Props) {
                                     <Wallet className="w-4 h-4 text-brand-500" />
                                     <span>收款帳號:</span>
                                     <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-gray-200">
-                                        {debt.bank_code && <span className="text-gray-400 mr-2">{debt.bank_code}</span>}
-                                        {debt.bank_account}
+                                        {debt.bank_code && <>代碼：{debt.bank_code} &nbsp; </>}帳號：{debt.bank_account}
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() => handleCopy(`${debt.bank_code || ''} ${debt.bank_account}`.trim(), index)}
+                                    onClick={() => handleCopy(`${debt.bank_account}`.trim(), index)}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copiedIndex === index
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-white border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-200'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-white border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-200'
                                         }`}
                                 >
                                     {copiedIndex === index ? (

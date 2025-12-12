@@ -7,9 +7,10 @@ interface Props {
     members: any[];
     onEdit: (expense: any) => void;
     onDelete: (id: number) => void;
+    currentMemberId?: number | null;
 }
 
-export default function ExpenseList({ expenses, members, onEdit, onDelete }: Props) {
+export default function ExpenseList({ expenses, members, currentMemberId, onEdit, onDelete }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
 
     const getMemberName = (id: number) => members.find(m => m.id === id)?.name || 'Unknown';
@@ -27,9 +28,20 @@ export default function ExpenseList({ expenses, members, onEdit, onDelete }: Pro
         });
     }, [expenses, searchTerm, members]);
 
-    const totalAmount = useMemo(() => {
-        return filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-    }, [filteredExpenses]);
+    const { totalAmount, userTotalPayable } = useMemo(() => {
+        let total = 0;
+        let userTotal = 0;
+        filteredExpenses.forEach(expense => {
+            total += Number(expense.amount);
+            if (currentMemberId) {
+                const userSplit = expense.splits?.find((s: any) => s.member_id === currentMemberId);
+                if (userSplit) {
+                    userTotal += Number(userSplit.owed_amount || 0);
+                }
+            }
+        });
+        return { totalAmount: total, userTotalPayable: userTotal };
+    }, [filteredExpenses, currentMemberId]);
 
     if (expenses.length === 0) {
         return (
@@ -70,8 +82,11 @@ export default function ExpenseList({ expenses, members, onEdit, onDelete }: Pro
                             ?.map((s: any) => getMemberName(s.member_id))
                             .join(', ');
 
+                        const userSplit = currentMemberId ? expense.splits?.find((s: any) => s.member_id === currentMemberId) : null;
+                        const isInvolved = !currentMemberId || !!userSplit;
+
                         return (
-                            <div key={expense.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group relative overflow-hidden">
+                            <div key={expense.id} className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group relative overflow-hidden ${!isInvolved ? 'opacity-50 grayscale' : ''}`}>
                                 <div className="flex items-start gap-4">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0 border ${getMemberColor(expense.payer_member_id)}`}>
                                         {getMemberInitials(payerName)}
@@ -89,6 +104,11 @@ export default function ExpenseList({ expenses, members, onEdit, onDelete }: Pro
                                                 <div className="font-bold text-gray-900 text-xl tracking-tight">
                                                     ${expense.amount.toLocaleString()}
                                                 </div>
+                                                {userSplit && (
+                                                    <div className="text-sm font-bold text-red-500 mt-1">
+                                                        應付: ${Number(userSplit.owed_amount).toLocaleString()}
+                                                    </div>
+                                                )}
                                                 <div className="text-xs text-gray-400 mt-1 font-medium">
                                                     {new Date(expense.created_at).toLocaleDateString()}
                                                 </div>
@@ -143,19 +163,23 @@ export default function ExpenseList({ expenses, members, onEdit, onDelete }: Pro
             </div>
 
             {/* Total Summary Footer */}
-            {filteredExpenses.length > 0 && (
-                <div className="sticky bottom-4 bg-gray-900 text-white p-4 rounded-2xl shadow-xl flex justify-between items-center animate-slide-up z-10">
-                    <div className="text-sm text-gray-300 font-medium">
-                        共 {filteredExpenses.length} 筆費用
+            {
+                filteredExpenses.length > 0 && (
+                    <div className="sticky bottom-4 bg-gray-900 text-white p-4 rounded-2xl shadow-xl flex justify-between items-center animate-slide-up z-10">
+                        <div className="text-sm text-gray-300 font-medium">
+                            共 {filteredExpenses.length} 筆費用
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-sm text-gray-400">
+                                {currentMemberId ? '應付總額' : '總計'}
+                            </span>
+                            <span className="text-2xl font-bold tracking-tight">
+                                ${(currentMemberId ? userTotalPayable : totalAmount).toLocaleString()}
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-sm text-gray-400">總計</span>
-                        <span className="text-2xl font-bold tracking-tight">
-                            ${totalAmount.toLocaleString()}
-                        </span>
-                    </div>
-                </div>
-            )}
+                )
+            }
         </div>
     );
 }
