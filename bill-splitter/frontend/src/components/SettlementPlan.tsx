@@ -73,7 +73,7 @@ export default function SettlementPlan({ data }: Props) {
                                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200"></div>
                                 <div className="w-full flex">
                                     <div className="flex-1 flex justify-end items-center gap-2">
-                                        {item.amount < 0 && Math.abs(item.amount) / maxBalance * 100 < 15 && (
+                                        {item.amount < 0 && Math.abs(item.amount) / maxBalance * 100 < 30 && (
                                             <span className="text-red-500 font-bold text-xs">
                                                 ${Math.abs(item.amount).toLocaleString()}
                                             </span>
@@ -83,7 +83,7 @@ export default function SettlementPlan({ data }: Props) {
                                                 className="h-6 bg-red-500 rounded-l-md flex items-center justify-end pr-2 text-xs text-white font-bold transition-all duration-500"
                                                 style={{ width: `${(Math.abs(item.amount) / maxBalance) * 100}%` }}
                                             >
-                                                {Math.abs(item.amount) / maxBalance * 100 >= 15 && (
+                                                {Math.abs(item.amount) / maxBalance * 100 >= 30 && (
                                                     <span>${Math.abs(item.amount).toLocaleString()}</span>
                                                 )}
                                             </div>
@@ -95,12 +95,12 @@ export default function SettlementPlan({ data }: Props) {
                                                 className="h-6 bg-green-500 rounded-r-md flex items-center pl-2 text-xs text-white font-bold transition-all duration-500"
                                                 style={{ width: `${(item.amount / maxBalance) * 100}%` }}
                                             >
-                                                {item.amount / maxBalance * 100 >= 15 && (
+                                                {item.amount / maxBalance * 100 >= 30 && (
                                                     <span>${item.amount.toLocaleString()}</span>
                                                 )}
                                             </div>
                                         )}
-                                        {item.amount > 0 && item.amount / maxBalance * 100 < 15 && (
+                                        {item.amount > 0 && item.amount / maxBalance * 100 < 30 && (
                                             <span className="text-green-500 font-bold text-xs">
                                                 ${item.amount.toLocaleString()}
                                             </span>
@@ -148,13 +148,14 @@ export default function SettlementPlan({ data }: Props) {
 
                         {/* Bank Info Section */}
                         {debt.bank_account && (
-                            <div className="pt-3 border-t border-gray-50 flex items-center justify-between bg-gray-50/50 -mx-5 -mb-5 px-5 py-3 mt-1">
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <Wallet className="w-4 h-4 text-brand-500" />
+                            <div className="pt-3 border-t border-gray-50 flex items-start justify-between bg-gray-50/50 -mx-5 -mb-5 px-5 py-3 mt-1">
+                                <div className="flex items-start gap-2 text-sm text-gray-600">
+                                    <Wallet className="w-4 h-4 text-brand-500 mt-0.5" />
                                     <span>收款帳號:</span>
-                                    <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-gray-200">
-                                        {debt.bank_code && <>代碼：{debt.bank_code} &nbsp; </>}帳號：{debt.bank_account}
-                                    </span>
+                                    <div className="flex flex-col font-mono font-bold bg-white px-2 py-1 rounded border border-gray-200">
+                                        {debt.bank_code && <span className="text-gray-500 text-xs">代碼：{debt.bank_code}</span>}
+                                        <span>帳號：{debt.bank_account}</span>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => handleCopy(`${debt.bank_account}`.trim(), index)}

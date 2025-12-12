@@ -165,7 +165,7 @@ export default function ExpenseList({ expenses, members, currentMemberId, onEdit
             {/* Total Summary Footer */}
             {
                 filteredExpenses.length > 0 && (
-                    <div className="sticky bottom-4 bg-gray-900 text-white p-4 rounded-2xl shadow-xl flex justify-between items-center animate-slide-up z-10">
+                    <div className="sticky bottom-4 bg-gray-900 text-white p-4 pr-20 rounded-2xl shadow-xl flex justify-between items-center animate-slide-up z-10">
                         <div className="text-sm text-gray-300 font-medium">
                             共 {filteredExpenses.length} 筆費用
                         </div>

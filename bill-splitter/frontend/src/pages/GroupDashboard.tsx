@@ -51,7 +51,7 @@ export default function GroupDashboard() {
 
     useEffect(() => {
         fetchData();
-    }, [id]);
+    }, [id, activeTab]);
 
     // Check Identity on Load
     useEffect(() => {
