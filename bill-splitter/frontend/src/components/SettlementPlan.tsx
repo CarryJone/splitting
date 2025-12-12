@@ -160,7 +160,6 @@ export default function SettlementPlan({ data, groupId, onToggleSettlement }: Pr
             {/* Transfer Plan */}
             <div className="space-y-3">
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-2">建議轉帳方案</h3>
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-2">建議轉帳方案</h3>
                 {sortedPlan.map((debt: any, index: number) => {
                     const isSettled = !!debt.is_settled;
                     const isToggling = loadingToggle === `${debt.from_id}-${debt.to_id}`;

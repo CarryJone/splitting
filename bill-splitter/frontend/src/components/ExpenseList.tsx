@@ -16,17 +16,47 @@ export default function ExpenseList({ expenses, members, currentMemberId, onEdit
     const getMemberName = (id: number) => members.find(m => m.id === id)?.name || 'Unknown';
 
     const filteredExpenses = useMemo(() => {
-        if (!searchTerm.trim()) return expenses;
         const lowerTerm = searchTerm.toLowerCase();
-        return expenses.filter(expense => {
-            const payerName = getMemberName(expense.payer_member_id).toLowerCase();
-            const splitNames = expense.splits?.map((s: any) => getMemberName(s.member_id).toLowerCase()).join(' ');
+        let result = [...expenses];
 
-            // Only search people (Payer or Split members)
-            return payerName.includes(lowerTerm) ||
-                (splitNames && splitNames.includes(lowerTerm));
+        if (searchTerm.trim()) {
+            result = result.filter(expense => {
+                const payerName = getMemberName(expense.payer_member_id).toLowerCase();
+                const splitNames = expense.splits?.map((s: any) => getMemberName(s.member_id).toLowerCase()).join(' ');
+
+                // Only search people (Payer or Split members)
+                return payerName.includes(lowerTerm) ||
+                    (splitNames && splitNames.includes(lowerTerm));
+            });
+        }
+
+        // Sort logic: 
+        // 1. User involved (has split) - prioritized
+        // 2. Amount user owes (descending)
+        // 3. Date (newest first)
+        return result.sort((a, b) => {
+            const getOwedAmount = (expense: any) => {
+                if (!currentMemberId) return 0;
+                const split = expense.splits?.find((s: any) => s.member_id === currentMemberId);
+                return split ? Number(split.owed_amount) : -1; // -1 to put not involved/payer at bottom if specific sort desired
+            };
+
+            const amountA = getOwedAmount(a);
+            const amountB = getOwedAmount(b);
+
+            // If both involved, sort by amount descending
+            if (amountA > 0 && amountB > 0) {
+                return amountB - amountA;
+            }
+
+            // If one involved and other not (or is payer with 0 owed), involved comes first
+            if (amountA > 0 && amountB <= 0) return -1;
+            if (amountA <= 0 && amountB > 0) return 1;
+
+            // Secondary sort by date (newest first)
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
-    }, [expenses, searchTerm, members]);
+    }, [expenses, searchTerm, members, currentMemberId]);
 
     const { totalAmount, userTotalPayable } = useMemo(() => {
         let total = 0;
